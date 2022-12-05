@@ -54,7 +54,6 @@ class Graph:  #  graful problemei
 
     # va genera succesorii sub forma de noduri in arborele de parcurgere
     def genereazaSuccesori(self, nodCurent):
-        scopuri = [" f", "j "]
         listaSuccesori=[ ]
         listaSuccesoriPrelucrata= []
         for i in range(self.nrNoduri):
@@ -65,10 +64,6 @@ class Graph:  #  graful problemei
                 # if nodNou.info in scopuri:
                 #     print("Lingime solutie: " + str(nodCurent.afisDrum()))
         if (len(listaSuccesori)> 0):
-            # print("Genereaza succesori " + str(listaSuccesori))
-            # print()
-            # print(str(lista2))
-            # print()
             print("Se extinde nodul " + str(nodCurent.info))
             print("Se adauga in coada " + str(listaSuccesoriPrelucrata))
 
@@ -89,26 +84,33 @@ class Graph:  #  graful problemei
 
 
 
-def breadth_first(gr):
+def imbunatatire(gr):
     global nrSolutiiCautate
     # in coada vom avea doar noduri de tip NodParcurgere (nodurile din arborele de parcurgere)
-    c=[ NodParcurgere(gr.noduri.index(start), start, None)]
-    print(" C: " + str(c))
-    continua=True  #  variabila pe care o setez la false cand consider ca s-au afisat suficiente solutii
-    while(len(c)>0 and continua):
+    c = [NodParcurgere(gr.noduri.index(start), start, None)]
+    continua = True  # variabila pe care o setez la false cand consider ca s-au afisat suficiente solutii
+    while (len(c) > 0 and continua):
         print("Coada actuala: " + str(c))
-        nodCurent=c. pop(0)
+        nodCurent = c.pop(0)
 
-        if nodCurent.info in scopuri:
+        # if nodCurent.info in scopuri:
+        #     print(nodCurent.afisDrum())
+        #     print()
+        #     nrSolutiiCautate -= 1
+        #     if nrSolutiiCautate == 0:
+        #         continua = False
+        lSuccesori = gr.genereazaSuccesori(nodCurent)
+        # print(lSuccesori)
+        for nod in lSuccesori:
+            if nod.info in scopuri:
+                print("Lungime solutie " + str(nod.afisDrum()))
+                print()
+                nrSolutiiCautate -= 1
+                if nrSolutiiCautate == 0:
+                    continua = False
 
-            print("Lungime solutie: " + str(nodCurent.afisDrum()))
-            print()
-            nrSolutiiCautate-=1
-            if nrSolutiiCautate==0 :
-                continua=False
-        lSuccesori=gr.genereazaSuccesori(nodCurent)
         c.extend(lSuccesori)
-        # print(str(c))
+        # print(c)
 
 
 
@@ -140,4 +142,4 @@ if __name__ == '__main__':
     # daca vrem doar o solutie, renuntam la variabila nrSolutiiCautate
     # si doar oprim algoritmul la afisarea primei solutii
     nrSolutiiCautate = 4
-    breadth_first(gr)
+    imbunatatire(gr)
