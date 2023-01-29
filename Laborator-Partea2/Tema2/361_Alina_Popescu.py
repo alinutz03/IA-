@@ -11,8 +11,111 @@ def elem_identice(lista):
 
 global ADANCIME_MAX
 global SCMAX
-global XSCORE
-global OSCORE
+
+
+
+class GrupButoane:
+    def __init__(self, listaButoane=[], indiceSelectat=0, spatiuButoane=10, left=0, top=0):
+        self.listaButoane = listaButoane
+        self.indiceSelectat = indiceSelectat
+        self.listaButoane[self.indiceSelectat].selectat = True
+        self.top = top
+        self.left = left
+        leftCurent = self.left
+        for b in self.listaButoane:
+            b.top = self.top
+            b.left = leftCurent
+            b.updateDreptunghi()
+            leftCurent += (spatiuButoane + b.w)
+
+    def selecteazaDupacoord(self, coord):
+        for ib, b in enumerate(self.listaButoane):
+            if b.selecteazaDupacoord(coord):
+                self.listaButoane[self.indiceSelectat].selecteaza(False)
+                self.indiceSelectat = ib
+                return True
+        return False
+
+    def deseneaza(self):
+        # atentie, nu face wrap
+        for b in self.listaButoane:
+            b.deseneaza()
+
+    def getValoare(self):
+        return self.listaButoane[self.indiceSelectat].valoare
+
+class Buton:
+    def __init__(self, display=None, left=0, top=0, w=0, h=0, culoareFundal=(53, 80, 115),
+                 culoareFundalSel=(89, 134, 194), text="", font="arial", fontDimensiune=16, culoareText=(255, 255, 255),
+                 valoare=""):
+        self.display = display
+        self.culoareFundal = culoareFundal
+        self.culoareFundalSel = culoareFundalSel
+        self.text = text
+        self.font = font
+        self.w = w
+        self.h = h
+        self.selectat = False
+        self.fontDimensiune = fontDimensiune
+        self.culoareText = culoareText
+        # creez obiectul font
+        fontObj = pygame.font.SysFont(self.font, self.fontDimensiune)
+        self.textRandat = fontObj.render(self.text, True, self.culoareText)
+        self.dreptunghi = pygame.Rect(left, top, w, h)
+        # aici centram textul
+        self.dreptunghiText = self.textRandat.get_rect(center=self.dreptunghi.center)
+        self.valoare = valoare
+
+    def selecteaza(self, sel):
+        self.selectat = sel
+        self.deseneaza()
+
+    def selecteazaDupacoord(self, coord):
+        if self.dreptunghi.collidepoint(coord):
+            self.selecteaza(True)
+            return True
+        return False
+
+    def updateDreptunghi(self):
+        self.dreptunghi.left = self.left
+        self.dreptunghi.top = self.top
+        self.dreptunghiText = self.textRandat.get_rect(center=self.dreptunghi.center)
+
+    def deseneaza(self):
+        culoareF = self.culoareFundalSel if self.selectat else self.culoareFundal
+        pygame.draw.rect(self.display, culoareF, self.dreptunghi)
+        self.display.blit(self.textRandat, self.dreptunghiText)
+
+def deseneaza_alegeri(display, tabla_curenta):
+    btn_alg = GrupButoane(
+        top=150,
+        left=30,
+        listaButoane=[
+            Buton(display=display, w=80, h=30, text="P1 vs CPU", valoare="1"),
+            Buton(display=display, w=80, h=30, text="P1 vs P2", valoare="2"),
+            Buton(display=display, w=80, h=30, text="CPU vs CPU", valoare="3")
+        ],
+        indiceSelectat=1)
+    ok = Buton(display=display, top=250, left=30, w=40, h=30, text="ok", culoareFundal=(155, 0, 55))
+    btn_alg.deseneaza()
+    ok.deseneaza()
+    while True:
+        for ev in pygame.event.get():
+            if ev.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif ev.type == pygame.MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                if not btn_alg.selecteazaDupacoord(pos):
+                        if ok.selecteazaDupacoord(pos):
+                            display.fill((0, 0, 0))  # stergere ecran
+                            tabla_curenta.deseneaza_grid()
+                            return btn_alg.getValoare()
+        pygame.display.update()
+
+
+
+
 class Joc:
     """
     Clasa care defineste jocul. Se va schimba de la un joc la altul.
@@ -145,7 +248,6 @@ class Joc:
                                  0 <= linie < Joc.NR_LINII and 0 <= coloana < Joc.NR_COLOANE]
 
 
-
             aparare = [[linie,coloana] for [linie,coloana] in directii_posibile
                        if self.matr[linie][coloana] == jucator_opus]
 
@@ -177,12 +279,11 @@ class Joc:
 
         pygame.display.flip()  # !!! obligatoriu pentru a actualiza interfata (desenul)
 
-    # TO DO nu mai exista mutari => jucataorul a pierdut
     def final(self,jucator=None):
         t_now = time.time()
-        if self.JMIN_scor > SCMAX:
+        if self.JMIN_scor >= SCMAX:
             return self.JMIN
-        elif self.JMAX_scor > SCMAX:
+        elif self.JMAX_scor >= SCMAX:
             return self.JMAX
 
         mutari = self.mutari(jucator)
@@ -197,20 +298,6 @@ class Joc:
                 return 0
         return -1 # cazul in care nu e final
 
-        # for i in range(self.NR_LINII):
-        #     for j in range(self.NR_COLOANE):
-        #         if '#' == self.matr[i][j]:
-        #             return False
-
-
-
-        # if t_now - self.TINCEPUT > self.TMAX:
-        #     if self.JMIN_scor == self.JMAX_scor:
-        #         return 'remiza'
-        #     return self.JMIN if self.JMIN_scor > self.JMAX_scor else self.JMAX
-        # return False
-
-
 
     # transforma indicele din list la coordonate la matrice
     def indice_la_pozitie(self, i):
@@ -224,7 +311,6 @@ class Joc:
 
 
     def valid(self, i, j):
-
         if self.piesaAparata(i, j):
             return False
         return True
@@ -233,11 +319,11 @@ class Joc:
 
     def mutari(self, jucator):
 
-        print("mutareeee")
+        # print("mutareeee")
         l_mutari = []
         if jucator  == Joc.JMAX:
             um=self.ultima_mutare_JMAX
-            print("um " + str(um))
+            # print("um " + str(um))
             i=um[0]
             j=um[1]
             directions = [[-1, 0], [1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]
@@ -248,7 +334,7 @@ class Joc:
                         matr_tabla_noua = copy.deepcopy(self.matr)
                         # matr_tabla_noua[i][j] = "#"
                         matr_tabla_noua[i + direction[0]][j + direction[1]] = jucator
-                        self.JMAX_scor +=1
+                        # Joc.JMAX_scor +=1
                         joc = Joc(matr_tabla_noua, self.__class__.NR_LINII, self.__class__.NR_COLOANE)
                         joc.ultima_mutare_JMAX = [i + direction[0], j + direction[1]]
                         l_mutari.append(joc)
@@ -272,7 +358,7 @@ class Joc:
                     if self.matr[i + direction[0]][j + direction[1]] == Joc.JMAX and self.valid(i + direction[0],
                         j + direction[1]):
                         matr_tabla_noua = copy.deepcopy(self.matr)
-                        self.JMIN_scor +=1
+                        # Joc.JMIN_scor +=1
                         # matr_tabla_noua[i][j] = "#"
                         matr_tabla_noua[i + direction[0]][j + direction[1]] = jucator
                         joc = Joc(matr_tabla_noua, self.__class__.NR_LINII, self.__class__.NR_COLOANE)
@@ -288,7 +374,7 @@ class Joc:
         return l_mutari
 
     def deseneaza_posibilitati(self, status=0, pozitii=None):
-        # BONUS 14
+        # BONUS 15 -> se aplica pentru linie si coloana pe casuteel goale
 
         # cazul cand poate sa genereze un x
         if status in [0, 1]:
@@ -299,7 +385,7 @@ class Joc:
             for i in range(self.__class__.NR_COLOANE * self.__class__.NR_LINII):
                 linie = i // self.__class__.NR_COLOANE  # // inseamna div
                 coloana = i % self.__class__.NR_COLOANE
-                if self.matr[linie][coloana] == '#' and self.pozitie_goala_valida(linie, coloana, self.matr, Joc.JMIN) :
+                if self.matr[linie][coloana] == '#' and self.pozitie_goala_valida(linie, coloana, self.matr, Joc.JMIN):
                     pygame.draw.rect(self.__class__.display, culoare, self.__class__.celuleGrid[i])
         # cazul cand poate sa mute un x
         elif status == 2:
@@ -327,22 +413,22 @@ class Joc:
         pygame.display.flip()
 
     # verifica cati vecini liberi are pozitia
-    def verif_directii(self, i, j, jucator):
+    def piesa_capturabila(self, i, j, jucator):
         counter = 0
-        if i + 1 < self.dimensiune_tabla:
-            if self.matr[self.pozitie_la_indice(i + 1, j)] == "#":
+        if i + 1 < self.NR_LINIINR:
+            if self.matr[i + 1, j] == Joc.jucator_opus(jucator):
                 counter += 1
 
         if i - 1 >= 0:
-            if self.matr[self.pozitie_la_indice(i - 1, j)] == "#":
+            if self.matr[i - 1, j] == Joc.jucator_opus(jucator):
                 counter += 1
 
-        if j + 1 < self.dimensiune_tabla:
-            if self.matr[self.pozitie_la_indice(i, j + 1)] == "#":
+        if j + 1 < self.NR_COLOANE:
+            if self.matr[i, j + 1] == Joc.jucator_opus(jucator):
                 counter += 1
 
         if j - 1 >= 0:
-            if self.matr[self.pozitie_la_indice(i, j - 1)] == "#":
+            if self.matr[i, j - 1] == Joc.jucator_opus(jucator):
                 counter += 1
 
         return counter
@@ -372,11 +458,37 @@ class Joc:
         elif t_final == 'remiza':
             return 0
         else:  # prima estimare scor.JMAX - scor JMIN
-            if Joc.METODA == 1:
-                return self.JMAX_scor - self.JMIN_scor
-            else:
-                # return self.numar_piese_capturabile(self.JMAX) - self.numar_piese_capturabile(self.JMIN)
-                return 10000
+                if Joc.METODA == 1:
+                    return self.JMAX_scor - self.JMIN_scor
+                else:
+                    return (self.piese_capturabile(self.__class__.JMIN, 2) - self.piese_capturabile(self.__class__.JMAX, 2))
+
+
+    def piese_capturabile(self, jucator, adancime):
+        linii = Joc.NR_LINII
+        coloane = Joc.NR_COLOANE
+
+        p = 0
+        if jucator == Joc.JMAX:
+            linie = self.ultima_mutare_JMAX
+            coloana = self.ultima_mutare_JMIN
+
+        for l in range (linie- adancime, linie + adancime + 1):
+            for c in range (coloana - adancime, coloana + adancime + 1):
+                if l<0 or c<0 or l>=linii or c>= coloane or ( l== linie and c == coloana):
+                    continue
+                if self.matr[l][c] == Joc.jucator_opus(jucator) and self.piesa_capturabila(l,c, jucator) == True:
+                    if(adancime != 1):
+                        # Piesele mai apropiate au ponderea mai mare
+                        pondere = 1
+                        if(abs(linie-l)==1):
+                            pondere = 4
+                        if(abs(linie-l) ==2):
+                            pondere = 2
+                        p = (p+1)+ pondere
+                    else:
+                        p += 1
+        return p
 
 
 class Stare:
@@ -429,7 +541,7 @@ def min_max(stare):
     stare.mutari_posibile = stare.mutari()
 
     if stare.mutari_posibile:
-        # BONUS 12
+        # OPTIMIZARE
         #  algoritmul minimax pe toate mutarile posibile (calculand astfel subarborii lor)
         mutariCuEstimare = [min_max(mutare) for mutare in stare.mutari_posibile]
 
@@ -504,12 +616,12 @@ def afis_daca_final(stare_curenta, jucator):
     if final:
         if final == 0:
             print("Remiza!")
+            return True
         else:
             stare_curenta.tabla_joc.deseneaza_grid()
             print("A castigat " + str(final))
+            return True
 
-        return True
-    return False
 
 
 
@@ -657,6 +769,7 @@ if __name__ == "__main__":
     ecran = pygame.display.set_mode(size=(l1, l2))  # N *w+ N-1= N*(w+1)-1
     # ecran = pygame.display.set_mode(size=(dim_latura, dim_latura))
     Joc.initializeaza(ecran, NR_LINII=N, NR_COLOANE=M, dim_celula=dim)
+
     tabla_curenta=Joc(NR_LINII=N, NR_COLOANE=M)
     tabla_curenta = Joc(NR_LINII=N, NR_COLOANE=M)
     Joc.METODA = metoda
@@ -666,6 +779,7 @@ if __name__ == "__main__":
     print("Tabla initiala")
     print(str(tabla_curenta))
     print(len(tabla_curenta.matr))
+    mod_de_joc = deseneaza_alegeri(ecran, tabla_curenta)
     tabla_curenta.deseneaza_grid()
     Joc.TINCEPUT=time.time()
 
@@ -706,14 +820,13 @@ while True:
                         # Verificam daca e JMAX si daca putem captura
                         # ++ linii de la mine
                         elif stare_curenta.tabla_joc.matr[linie][coloana] == Joc.JMAX and stare_curenta.tabla_joc.valid(linie,coloana):
-                            if de_mutat and (
-                                    abs(linie - de_mutat[0]) > 1 or abs(
-                                coloana - de_mutat[1]) > 1):
+                            if de_mutat and (abs(linie - de_mutat[0]) > 1 or abs(coloana - de_mutat[1]) > 1):
                                 print("Mutare invalida! Nu se poate muta atat de mult!\n")
                                 continue
                             stare_curenta.tabla_joc.matr[linie][coloana] = Joc.JMIN
+                            Joc.JMIN_scor += 1
                             # plasez simbolul pe "tabla de joc"
-                            stare_curenta.tabla_joc.matr[linie][coloana] = Joc.JMIN
+                            # stare_curenta.tabla_joc.matr[linie][coloana] = Joc.JMIN
 
                             # afisarea starii jocului in urma mutarii utilizatorului
                             print("\nTabla dupa mutarea jucatorului")
@@ -736,9 +849,7 @@ while True:
                                             "Mutare invalida! Mutarea trebuie sa fie pe aceeasi linie/coloana ca pozitia de unde pleaca!\n")
                                     continue
                                 # trebuie pe linie, coloana sau diagonala
-                                if de_mutat and (
-                                        abs(linie - de_mutat[0]) > 1 or abs(
-                                    coloana - de_mutat[1]) > 1):
+                                if de_mutat and (abs(linie - de_mutat[0]) > 1 or abs(coloana - de_mutat[1]) > 1):
                                     print("Mutare invalida! Nu se poate muta atat de mult!\n")
                                     continue
 
@@ -764,6 +875,7 @@ while True:
                             if Joc.JMIN in [stare_curenta.tabla_joc.matr[linie_posibila][coloana_posibila]
                                             for [linie_posibila,coloana_posibila] in directii_posibile]:
                                 stare_curenta.tabla_joc.matr[linie][coloana] = Joc.JMIN
+                                # Joc.JMIN_scor += 1
                             else:
                                 break
 
@@ -771,6 +883,7 @@ while True:
                             # afisarea starii jocului in urma mutarii utilizatorului
                             print("\nTabla dupa mutarea jucatorului")
                             print(str(stare_curenta))
+                            # print()
 
                             stare_curenta.tabla_joc.deseneaza_grid()
                             # testez daca jocul a ajuns intr-o stare finala
@@ -800,8 +913,10 @@ while True:
 
         stare_curenta.tabla_joc = stare_actualizata.stare_aleasa.tabla_joc
         print("Scor PC: " + str(Joc.JMAX_scor) + "   " + "Scor : " + str(Joc.JMAX_scor))
+        print("Scor Utilizator: " + str(Joc.JMIN_scor) + "   " + "Scor : " + str(Joc.JMIN_scor))
         print("Tabla dupa mutarea calculatorului")
         print(str(stare_curenta))
+        # print()
 
         stare_curenta.tabla_joc.deseneaza_grid()
         # preiau timpul in milisecunde de dupa mutare
