@@ -321,6 +321,7 @@ class Joc:
 
         # print("mutareeee")
         l_mutari = []
+        l_capturat=[]
         if jucator  == Joc.JMAX:
             um=self.ultima_mutare_JMAX
             # print("um " + str(um))
@@ -360,6 +361,7 @@ class Joc:
                         matr_tabla_noua = copy.deepcopy(self.matr)
                         # Joc.JMIN_scor +=1
                         # matr_tabla_noua[i][j] = "#"
+
                         matr_tabla_noua[i + direction[0]][j + direction[1]] = jucator
                         joc = Joc(matr_tabla_noua, self.__class__.NR_LINII, self.__class__.NR_COLOANE)
                         joc.ultima_mutare_JMIN= [i + direction[0], j + direction[1]]
@@ -371,6 +373,7 @@ class Joc:
                         joc = Joc(matr_tabla_noua, self.__class__.NR_LINII, self.__class__.NR_COLOANE)
                         joc.ultima_mutare_JMIN = [i + direction[0], j + direction[1]]
                         l_mutari.append(joc)
+
         return l_mutari
 
     def deseneaza_posibilitati(self, status=0, pozitii=None):
@@ -516,14 +519,14 @@ class Stare:
         self.stare_aleasa = None
 
     def mutari(self):
-        l_mutari = self.tabla_joc.mutari(self.j_curent)
+        l_mutari= self.tabla_joc.mutari(self.j_curent)
         juc_opus = Joc.jucator_opus(self.j_curent)
         l_stari_mutari = [Stare(mutare, juc_opus, self.adancime - 1, parinte=self) for mutare in l_mutari]
 
         return l_stari_mutari
 
     def __str__(self):
-        sir = str(self.tabla_joc) + "(Jucator curent:" + self.j_curent + ")\n"
+        sir = str(self.tabla_joc) + ("\nJucator curent:" + str(self.j_curent) +"\n ")
         return sir
 
 
@@ -542,7 +545,7 @@ def min_max(stare):
 
     if stare.mutari_posibile:
         # OPTIMIZARE
-        #  algoritmul minimax pe toate mutarile posibile (calculand astfel subarborii lor)
+        # algoritmul minimax pe toate mutarile posibile (calculand astfel subarborii lor)
         mutariCuEstimare = [min_max(mutare) for mutare in stare.mutari_posibile]
 
         if mutariCuEstimare:
@@ -911,12 +914,27 @@ while True:
         else:  # tip_algoritm==2
             stare_actualizata = alpha_beta(-500, 500, stare_curenta)
 
+        scMax1=0
+        scMax2=0
+        # print(Joc.JMIN)
+        for l in range(Joc.NR_LINII):
+            for c in range(Joc.NR_COLOANE):
+                if stare_curenta.tabla_joc.matr[l][c]==Joc.JMIN:
+                    scMax1 +=1
+                if stare_actualizata.stare_aleasa.tabla_joc.matr[l][c]==Joc.JMIN:
+                    scMax2 +=1
+        print(scMax1)
+        print(scMax2)
+        if scMax2 != scMax1 :
+            Joc.JMAX_scor = Joc.JMAX_scor + 1
+
+
+
         stare_curenta.tabla_joc = stare_actualizata.stare_aleasa.tabla_joc
         print("Scor PC: " + str(Joc.JMAX_scor) + "   " + "Scor : " + str(Joc.JMAX_scor))
         print("Scor Utilizator: " + str(Joc.JMIN_scor) + "   " + "Scor : " + str(Joc.JMIN_scor))
         print("Tabla dupa mutarea calculatorului")
         print(str(stare_curenta))
-        # print()
 
         stare_curenta.tabla_joc.deseneaza_grid()
         # preiau timpul in milisecunde de dupa mutare
